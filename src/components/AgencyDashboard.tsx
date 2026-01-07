@@ -4,6 +4,7 @@ import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Incident, User, IncidentStatus } from '../types';
 import LiveMap from './LiveMap';
+import ResourcesList from './ResourcesList';
 
 const AgencyDashboard: React.FC = () => {
     const { userProfile, logout } = useAuth();
@@ -12,6 +13,8 @@ const AgencyDashboard: React.FC = () => {
     const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [filterSeverity, setFilterSeverity] = useState<string>('all');
+
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'resources'>('dashboard');
 
     // Fetch city incidents
     useEffect(() => {
@@ -124,9 +127,9 @@ const AgencyDashboard: React.FC = () => {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
-            <header className="bg-white shadow-sm border-b border-gray-200">
+            <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
                 <div className="max-w-7xl mx-auto px-4 py-4">
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center mb-4">
                         <div>
                             <h1 className="text-2xl font-bold text-primary-600">ResQNet Control Room</h1>
                             <p className="text-sm text-gray-600">
@@ -138,168 +141,199 @@ const AgencyDashboard: React.FC = () => {
                         </button>
                     </div>
 
-                    {/* Analytics */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                        <div className="bg-primary-50 rounded-lg p-4 border border-primary-200">
-                            <p className="text-3xl font-bold text-primary-600">{stats.total}</p>
-                            <p className="text-sm text-gray-600">Total Incidents</p>
-                        </div>
-                        <div className="bg-warning-50 rounded-lg p-4 border border-warning-200">
-                            <p className="text-3xl font-bold text-warning-600">{stats.active}</p>
-                            <p className="text-sm text-gray-600">Active Incidents</p>
-                        </div>
-                        <div className="bg-success-50 rounded-lg p-4 border border-success-200">
-                            <p className="text-3xl font-bold text-success-600">{stats.resolved}</p>
-                            <p className="text-sm text-gray-600">Resolved</p>
-                        </div>
-                        <div className="bg-danger-50 rounded-lg p-4 border border-danger-200">
-                            <p className="text-3xl font-bold text-danger-600">{stats.high}</p>
-                            <p className="text-sm text-gray-600">High Priority</p>
-                        </div>
+                    {/* Navigation Tabs */}
+                    <div className="flex gap-4 border-b border-gray-100 mb-4">
+                        <button
+                            onClick={() => setActiveTab('dashboard')}
+                            className={`pb-2 px-1 text-sm font-medium transition-colors relative ${activeTab === 'dashboard'
+                                ? 'text-primary-600 border-b-2 border-primary-600'
+                                : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            Agency Dashboard
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('resources')}
+                            className={`pb-2 px-1 text-sm font-medium transition-colors relative ${activeTab === 'resources'
+                                ? 'text-primary-600 border-b-2 border-primary-600'
+                                : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            Resources Available
+                        </button>
                     </div>
+
+                    {/* Analytics */}
+                    {activeTab === 'dashboard' && (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="bg-primary-50 rounded-lg p-4 border border-primary-200">
+                                <p className="text-3xl font-bold text-primary-600">{stats.total}</p>
+                                <p className="text-sm text-gray-600">Total Incidents</p>
+                            </div>
+                            <div className="bg-warning-50 rounded-lg p-4 border border-warning-200">
+                                <p className="text-3xl font-bold text-warning-600">{stats.active}</p>
+                                <p className="text-sm text-gray-600">Active Incidents</p>
+                            </div>
+                            <div className="bg-success-50 rounded-lg p-4 border border-success-200">
+                                <p className="text-3xl font-bold text-success-600">{stats.resolved}</p>
+                                <p className="text-sm text-gray-600">Resolved</p>
+                            </div>
+                            <div className="bg-danger-50 rounded-lg p-4 border border-danger-200">
+                                <p className="text-3xl font-bold text-danger-600">{stats.high}</p>
+                                <p className="text-sm text-gray-600">High Priority</p>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </header>
 
             <div className="max-w-7xl mx-auto px-4 py-6">
-                {/* Live Map */}
-                <div className="card mb-6">
-                    <h2 className="mb-4">City-Wide Live Incident Map</h2>
-                    <LiveMap
-                        city={userProfile?.city}
-                        height="500px"
-                        onIncidentClick={setSelectedIncident}
-                    />
-                </div>
 
-                <div className="grid lg:grid-cols-3 gap-6">
-                    {/* Incident Management */}
-                    <div className="lg:col-span-2 card">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2>Incident Management</h2>
-
-                            <div className="flex gap-2">
-                                <select
-                                    value={filterStatus}
-                                    onChange={(e) => setFilterStatus(e.target.value)}
-                                    className="text-sm border border-gray-300 rounded px-2 py-1"
-                                >
-                                    <option value="all">All Status</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="verified">Verified</option>
-                                    <option value="in-progress">In Progress</option>
-                                    <option value="resolved">Resolved</option>
-                                </select>
-
-                                <select
-                                    value={filterSeverity}
-                                    onChange={(e) => setFilterSeverity(e.target.value)}
-                                    className="text-sm border border-gray-300 rounded px-2 py-1"
-                                >
-                                    <option value="all">All Severity</option>
-                                    <option value="High">High</option>
-                                    <option value="Medium">Medium</option>
-                                    <option value="Low">Low</option>
-                                </select>
-                            </div>
+                {activeTab === 'dashboard' ? (
+                    <>
+                        {/* Live Map */}
+                        <div className="card mb-6">
+                            <h2 className="mb-4">City-Wide Live Incident Map</h2>
+                            <LiveMap
+                                city={userProfile?.city}
+                                height="500px"
+                                onIncidentClick={setSelectedIncident}
+                            />
                         </div>
 
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                                <thead className="bg-gray-100 border-b border-gray-200">
-                                    <tr>
-                                        <th className="text-left p-2">Type</th>
-                                        <th className="text-left p-2">Severity</th>
-                                        <th className="text-left p-2">Status</th>
-                                        <th className="text-left p-2">Reporter</th>
-                                        <th className="text-left p-2">Volunteer</th>
-                                        <th className="text-left p-2">Time</th>
-                                        <th className="text-left p-2">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredIncidents.map((incident) => (
-                                        <tr key={incident.id} className="border-b border-gray-200 hover:bg-gray-50">
-                                            <td className="p-2 capitalize">{incident.type}</td>
-                                            <td className="p-2">
-                                                <span className={
-                                                    incident.severity === 'High' ? 'text-danger-600 font-semibold' :
-                                                        incident.severity === 'Medium' ? 'text-warning-600 font-semibold' :
-                                                            'text-success-600 font-semibold'
-                                                }>
-                                                    {incident.severity}
-                                                </span>
-                                            </td>
-                                            <td className="p-2">
-                                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(incident.status)}`}>
-                                                    {incident.status}
-                                                </span>
-                                            </td>
-                                            <td className="p-2">{incident.reportedByName}</td>
-                                            <td className="p-2">{incident.assignedVolunteerName || '-'}</td>
-                                            <td className="p-2 text-xs text-gray-500">
-                                                {new Date(incident.timestamp).toLocaleString()}
-                                            </td>
-                                            <td className="p-2">
-                                                <button
-                                                    onClick={() => setSelectedIncident(incident)}
-                                                    className="text-primary-600 hover:text-primary-700 font-semibold text-xs"
-                                                >
-                                                    Manage
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                        <div className="grid lg:grid-cols-3 gap-6">
+                            {/* Incident Management */}
+                            <div className="lg:col-span-2 card">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2>Incident Management</h2>
 
-                            {filteredIncidents.length === 0 && (
-                                <p className="text-center text-gray-500 py-8">No incidents found</p>
-                            )}
-                        </div>
-                    </div>
+                                    <div className="flex gap-2">
+                                        <select
+                                            value={filterStatus}
+                                            onChange={(e) => setFilterStatus(e.target.value)}
+                                            className="text-sm border border-gray-300 rounded px-2 py-1"
+                                        >
+                                            <option value="all">All Status</option>
+                                            <option value="pending">Pending</option>
+                                            <option value="verified">Verified</option>
+                                            <option value="in-progress">In Progress</option>
+                                            <option value="resolved">Resolved</option>
+                                        </select>
 
-                    {/* Volunteer Community */}
-                    <div className="card">
-                        <h2 className="mb-4">Volunteer Community</h2>
-
-                        <div className="mb-4">
-                            <p className="text-sm text-gray-600">
-                                Total Volunteers: <span className="font-semibold text-primary-600">{volunteers.length}</span>
-                            </p>
-                        </div>
-
-                        <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                            {volunteers.map((volunteer) => (
-                                <div
-                                    key={volunteer.uid}
-                                    className="border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow"
-                                >
-                                    <h3 className="font-semibold">{volunteer.name}</h3>
-                                    <p className="text-xs text-gray-600">{volunteer.volunteerCategory}</p>
-                                    <p className="text-xs text-gray-500">{volunteer.phone}</p>
-
-                                    <div className="mt-2">
-                                        {volunteer.isAvailable ? (
-                                            <span className="px-2 py-1 bg-success-100 text-success-800 rounded-full text-xs font-semibold">
-                                                Available
-                                            </span>
-                                        ) : (
-                                            <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-semibold">
-                                                Busy
-                                            </span>
-                                        )}
+                                        <select
+                                            value={filterSeverity}
+                                            onChange={(e) => setFilterSeverity(e.target.value)}
+                                            className="text-sm border border-gray-300 rounded px-2 py-1"
+                                        >
+                                            <option value="all">All Severity</option>
+                                            <option value="High">High</option>
+                                            <option value="Medium">Medium</option>
+                                            <option value="Low">Low</option>
+                                        </select>
                                     </div>
                                 </div>
-                            ))}
 
-                            {volunteers.length === 0 && (
-                                <p className="text-gray-500 text-center py-8 text-sm">
-                                    No volunteers registered yet
-                                </p>
-                            )}
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-gray-100 border-b border-gray-200">
+                                            <tr>
+                                                <th className="text-left p-2">Type</th>
+                                                <th className="text-left p-2">Severity</th>
+                                                <th className="text-left p-2">Status</th>
+                                                <th className="text-left p-2">Reporter</th>
+                                                <th className="text-left p-2">Volunteer</th>
+                                                <th className="text-left p-2">Time</th>
+                                                <th className="text-left p-2">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredIncidents.map((incident) => (
+                                                <tr key={incident.id} className="border-b border-gray-200 hover:bg-gray-50">
+                                                    <td className="p-2 capitalize">{incident.type}</td>
+                                                    <td className="p-2">
+                                                        <span className={
+                                                            incident.severity === 'High' ? 'text-danger-600 font-semibold' :
+                                                                incident.severity === 'Medium' ? 'text-warning-600 font-semibold' :
+                                                                    'text-success-600 font-semibold'
+                                                        }>
+                                                            {incident.severity}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-2">
+                                                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(incident.status)}`}>
+                                                            {incident.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-2">{incident.reportedByName}</td>
+                                                    <td className="p-2">{incident.assignedVolunteerName || '-'}</td>
+                                                    <td className="p-2 text-xs text-gray-500">
+                                                        {new Date(incident.timestamp).toLocaleString()}
+                                                    </td>
+                                                    <td className="p-2">
+                                                        <button
+                                                            onClick={() => setSelectedIncident(incident)}
+                                                            className="text-primary-600 hover:text-primary-700 font-semibold text-xs"
+                                                        >
+                                                            Manage
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+
+                                    {filteredIncidents.length === 0 && (
+                                        <p className="text-center text-gray-500 py-8">No incidents found</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Volunteer Community */}
+                            <div className="card">
+                                <h2 className="mb-4">Volunteer Community</h2>
+
+                                <div className="mb-4">
+                                    <p className="text-sm text-gray-600">
+                                        Total Volunteers: <span className="font-semibold text-primary-600">{volunteers.length}</span>
+                                    </p>
+                                </div>
+
+                                <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                                    {volunteers.map((volunteer) => (
+                                        <div
+                                            key={volunteer.uid}
+                                            className="border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow"
+                                        >
+                                            <h3 className="font-semibold">{volunteer.name}</h3>
+                                            <p className="text-xs text-gray-600">{volunteer.volunteerCategory}</p>
+                                            <p className="text-xs text-gray-500">{volunteer.phone}</p>
+
+                                            <div className="mt-2">
+                                                {volunteer.isAvailable ? (
+                                                    <span className="px-2 py-1 bg-success-100 text-success-800 rounded-full text-xs font-semibold">
+                                                        Available
+                                                    </span>
+                                                ) : (
+                                                    <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-semibold">
+                                                        Busy
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    {volunteers.length === 0 && (
+                                        <p className="text-gray-500 text-center py-8 text-sm">
+                                            No volunteers registered yet
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
+                    </>
+                ) : (
+                    <ResourcesList />
+                )}
 
                 {/* Incident Management Modal */}
                 {selectedIncident && (

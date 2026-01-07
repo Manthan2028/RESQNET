@@ -5,6 +5,7 @@ import { db, storage } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Incident, IncidentType, IncidentSeverity } from '../types';
 import LiveMap from './LiveMap';
+import ResourcesList from './ResourcesList';
 
 const NormalUserDashboard: React.FC = () => {
     const { userProfile, logout } = useAuth();
@@ -12,6 +13,8 @@ const NormalUserDashboard: React.FC = () => {
     const [myIncidents, setMyIncidents] = useState<Incident[]>([]);
     const [loading, setLoading] = useState(false);
     const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
+
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'resources'>('dashboard');
 
     // Fetch user's incidents
     useEffect(() => {
@@ -136,164 +139,195 @@ const NormalUserDashboard: React.FC = () => {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
-            <header className="bg-white shadow-sm border-b border-gray-200">
-                <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-                    <div>
-                        <h1 className="text-2xl font-bold text-primary-600">ResQNet</h1>
-                        <p className="text-sm text-gray-600">Welcome, {userProfile?.name}</p>
+            <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
+                <div className="max-w-7xl mx-auto px-4 py-4">
+                    <div className="flex justify-between items-center mb-4">
+                        <div>
+                            <h1 className="text-2xl font-bold text-primary-600">ResQNet</h1>
+                            <p className="text-sm text-gray-600">Welcome, {userProfile?.name}</p>
+                        </div>
+                        <button onClick={logout} className="btn-secondary text-sm">
+                            Logout
+                        </button>
                     </div>
-                    <button onClick={logout} className="btn-secondary text-sm">
-                        Logout
-                    </button>
+
+                    {/* Navigation Tabs */}
+                    <div className="flex gap-4 border-b border-gray-100">
+                        <button
+                            onClick={() => setActiveTab('dashboard')}
+                            className={`pb-2 px-1 text-sm font-medium transition-colors relative ${activeTab === 'dashboard'
+                                ? 'text-primary-600 border-b-2 border-primary-600'
+                                : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            My Dashboard
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('resources')}
+                            className={`pb-2 px-1 text-sm font-medium transition-colors relative ${activeTab === 'resources'
+                                ? 'text-primary-600 border-b-2 border-primary-600'
+                                : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            Resources Available
+                        </button>
+                    </div>
                 </div>
             </header>
 
             <div className="max-w-7xl mx-auto px-4 py-6">
-                {/* Emergency Report Button - Prominent */}
-                <div className="mb-6">
-                    <button
-                        onClick={() => setShowReportForm(true)}
-                        className="btn-danger w-full py-4 text-lg font-bold shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all"
-                    >
-                        🚨 REPORT EMERGENCY
-                    </button>
-                </div>
 
-                {/* Report Form Modal */}
-                {showReportForm && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                        <div className="card max-w-md w-full max-h-[90vh] overflow-y-auto">
-                            <h2 className="mb-4">Report Emergency</h2>
-
-                            <form onSubmit={handleReportIncident}>
-                                <div className="mb-4">
-                                    <label className="label">Incident Type</label>
-                                    <select name="type" required className="input-field">
-                                        <option value="">Select type</option>
-                                        <option value="accident">Accident</option>
-                                        <option value="fire">Fire</option>
-                                        <option value="medical">Medical Emergency</option>
-                                        <option value="flood">Flood</option>
-                                        <option value="earthquake">Earthquake</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                </div>
-
-                                <div className="mb-4">
-                                    <label className="label">Severity</label>
-                                    <select name="severity" required className="input-field">
-                                        <option value="">Select severity</option>
-                                        <option value="Low">Low</option>
-                                        <option value="Medium">Medium</option>
-                                        <option value="High">High</option>
-                                    </select>
-                                </div>
-
-                                <div className="mb-4">
-                                    <label className="label">Description</label>
-                                    <textarea
-                                        name="description"
-                                        required
-                                        rows={3}
-                                        className="input-field"
-                                        placeholder="Describe the emergency..."
-                                    />
-                                </div>
-
-                                <div className="mb-4">
-                                    <label className="label">Photo (Optional)</label>
-                                    <input
-                                        type="file"
-                                        name="image"
-                                        accept="image/*"
-                                        className="input-field"
-                                    />
-                                </div>
-
-                                <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 mb-4">
-                                    <p className="text-sm text-primary-800">
-                                        📍 Using Demo Location (Simulated)
-                                    </p>
-                                </div>
-
-                                <div className="flex gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowReportForm(false)}
-                                        className="btn-secondary flex-1"
-                                        disabled={loading}
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="btn-danger flex-1"
-                                        disabled={loading}
-                                    >
-                                        {loading ? 'Reporting...' : 'Submit Report'}
-                                    </button>
-                                </div>
-                            </form>
+                {activeTab === 'dashboard' ? (
+                    <>
+                        {/* Emergency Report Button - Prominent */}
+                        <div className="mb-6">
+                            <button
+                                onClick={() => setShowReportForm(true)}
+                                className="btn-danger w-full py-4 text-lg font-bold shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all"
+                            >
+                                🚨 REPORT EMERGENCY
+                            </button>
                         </div>
-                    </div>
-                )}
 
-                {/* Live Map */}
-                <div className="card mb-6">
-                    <h2 className="mb-4">Live Incident Map - {userProfile?.city}</h2>
-                    <LiveMap
-                        city={userProfile?.city}
-                        height="400px"
-                        onIncidentClick={setSelectedIncident}
-                    />
-                </div>
+                        {/* Report Form Modal */}
+                        {showReportForm && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                                <div className="card max-w-md w-full max-h-[90vh] overflow-y-auto">
+                                    <h2 className="mb-4">Report Emergency</h2>
 
-                {/* My Incidents */}
-                <div className="card">
-                    <h2 className="mb-4">My Reported Incidents</h2>
+                                    <form onSubmit={handleReportIncident}>
+                                        <div className="mb-4">
+                                            <label className="label">Incident Type</label>
+                                            <select name="type" required className="input-field">
+                                                <option value="">Select type</option>
+                                                <option value="accident">Accident</option>
+                                                <option value="fire">Fire</option>
+                                                <option value="medical">Medical Emergency</option>
+                                                <option value="flood">Flood</option>
+                                                <option value="earthquake">Earthquake</option>
+                                                <option value="other">Other</option>
+                                            </select>
+                                        </div>
 
-                    {myIncidents.length === 0 ? (
-                        <p className="text-gray-500 text-center py-8">
-                            You haven't reported any incidents yet
-                        </p>
-                    ) : (
-                        <div className="space-y-3">
-                            {myIncidents.map((incident) => (
-                                <div
-                                    key={incident.id}
-                                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                                    onClick={() => setSelectedIncident(incident)}
-                                >
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h3 className="font-semibold capitalize">{incident.type}</h3>
-                                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(incident.status)}`}>
-                                            {incident.status.replace('-', ' ')}
-                                        </span>
-                                    </div>
+                                        <div className="mb-4">
+                                            <label className="label">Severity</label>
+                                            <select name="severity" required className="input-field">
+                                                <option value="">Select severity</option>
+                                                <option value="Low">Low</option>
+                                                <option value="Medium">Medium</option>
+                                                <option value="High">High</option>
+                                            </select>
+                                        </div>
 
-                                    <p className="text-sm text-gray-600 mb-2">{incident.description}</p>
+                                        <div className="mb-4">
+                                            <label className="label">Description</label>
+                                            <textarea
+                                                name="description"
+                                                required
+                                                rows={3}
+                                                className="input-field"
+                                                placeholder="Describe the emergency..."
+                                            />
+                                        </div>
 
-                                    <div className="flex justify-between items-center text-xs text-gray-500">
-                                        <span>Severity: <span className={
-                                            incident.severity === 'High' ? 'text-danger-600 font-semibold' :
-                                                incident.severity === 'Medium' ? 'text-warning-600 font-semibold' :
-                                                    'text-success-600 font-semibold'
-                                        }>{incident.severity}</span></span>
-                                        <span>{new Date(incident.timestamp).toLocaleString()}</span>
-                                    </div>
+                                        <div className="mb-4">
+                                            <label className="label">Photo (Optional)</label>
+                                            <input
+                                                type="file"
+                                                name="image"
+                                                accept="image/*"
+                                                className="input-field"
+                                            />
+                                        </div>
 
-                                    {incident.updates.length > 0 && (
-                                        <div className="mt-2 pt-2 border-t border-gray-200">
-                                            <p className="text-xs text-primary-600 font-semibold">
-                                                Latest: {incident.updates[incident.updates.length - 1].message}
+                                        <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 mb-4">
+                                            <p className="text-sm text-primary-800">
+                                                📍 Using Demo Location (Simulated)
                                             </p>
                                         </div>
-                                    )}
+
+                                        <div className="flex gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowReportForm(false)}
+                                                className="btn-secondary flex-1"
+                                                disabled={loading}
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="btn-danger flex-1"
+                                                disabled={loading}
+                                            >
+                                                {loading ? 'Reporting...' : 'Submit Report'}
+                                            </button>
+                                        </div>
+                                    </form>
                                 </div>
-                            ))}
+                            </div>
+                        )}
+
+                        {/* Live Map */}
+                        <div className="card mb-6">
+                            <h2 className="mb-4">Live Incident Map - {userProfile?.city}</h2>
+                            <LiveMap
+                                city={userProfile?.city}
+                                height="400px"
+                                onIncidentClick={setSelectedIncident}
+                            />
                         </div>
-                    )}
-                </div>
+
+                        {/* My Incidents */}
+                        <div className="card">
+                            <h2 className="mb-4">My Reported Incidents</h2>
+
+                            {myIncidents.length === 0 ? (
+                                <p className="text-gray-500 text-center py-8">
+                                    You haven't reported any incidents yet
+                                </p>
+                            ) : (
+                                <div className="space-y-3">
+                                    {myIncidents.map((incident) => (
+                                        <div
+                                            key={incident.id}
+                                            className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                                            onClick={() => setSelectedIncident(incident)}
+                                        >
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h3 className="font-semibold capitalize">{incident.type}</h3>
+                                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(incident.status)}`}>
+                                                    {incident.status.replace('-', ' ')}
+                                                </span>
+                                            </div>
+
+                                            <p className="text-sm text-gray-600 mb-2">{incident.description}</p>
+
+                                            <div className="flex justify-between items-center text-xs text-gray-500">
+                                                <span>Severity: <span className={
+                                                    incident.severity === 'High' ? 'text-danger-600 font-semibold' :
+                                                        incident.severity === 'Medium' ? 'text-warning-600 font-semibold' :
+                                                            'text-success-600 font-semibold'
+                                                }>{incident.severity}</span></span>
+                                                <span>{new Date(incident.timestamp).toLocaleString()}</span>
+                                            </div>
+
+                                            {incident.updates.length > 0 && (
+                                                <div className="mt-2 pt-2 border-t border-gray-200">
+                                                    <p className="text-xs text-primary-600 font-semibold">
+                                                        Latest: {incident.updates[incident.updates.length - 1].message}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </>
+                ) : (
+                    <ResourcesList />
+                )}
 
                 {/* Incident Detail Modal */}
                 {selectedIncident && (

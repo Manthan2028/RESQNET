@@ -5,6 +5,7 @@ import { db, storage } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Incident, IncidentUpdate } from '../types';
 import LiveMap from './LiveMap';
+import ResourcesList from './ResourcesList';
 
 const VolunteerDashboard: React.FC = () => {
     const { userProfile, logout } = useAuth();
@@ -13,6 +14,8 @@ const VolunteerDashboard: React.FC = () => {
     const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
     const [showUpdateForm, setShowUpdateForm] = useState(false);
     const [loading, setLoading] = useState(false);
+
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'resources'>('dashboard');
 
     // Fetch city incidents
     useEffect(() => {
@@ -127,9 +130,9 @@ const VolunteerDashboard: React.FC = () => {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
-            <header className="bg-white shadow-sm border-b border-gray-200">
+            <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
                 <div className="max-w-7xl mx-auto px-4 py-4">
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center mb-4">
                         <div>
                             <h1 className="text-2xl font-bold text-primary-600">ResQNet Volunteer</h1>
                             <p className="text-sm text-gray-600">
@@ -141,141 +144,172 @@ const VolunteerDashboard: React.FC = () => {
                         </button>
                     </div>
 
-                    {/* Stats */}
-                    <div className="grid grid-cols-3 gap-4 mt-4">
-                        <div className="bg-primary-50 rounded-lg p-3 text-center">
-                            <p className="text-2xl font-bold text-primary-600">{myIncidents.length}</p>
-                            <p className="text-xs text-gray-600">My Incidents</p>
-                        </div>
-                        <div className="bg-warning-50 rounded-lg p-3 text-center">
-                            <p className="text-2xl font-bold text-warning-600">
-                                {incidents.filter(i => i.status === 'pending').length}
-                            </p>
-                            <p className="text-xs text-gray-600">Pending</p>
-                        </div>
-                        <div className="bg-success-50 rounded-lg p-3 text-center">
-                            <p className="text-2xl font-bold text-success-600">
-                                {incidents.filter(i => i.status === 'in-progress').length}
-                            </p>
-                            <p className="text-xs text-gray-600">In Progress</p>
-                        </div>
+                    {/* Navigation Tabs */}
+                    <div className="flex gap-4 border-b border-gray-100 mb-4">
+                        <button
+                            onClick={() => setActiveTab('dashboard')}
+                            className={`pb-2 px-1 text-sm font-medium transition-colors relative ${activeTab === 'dashboard'
+                                ? 'text-primary-600 border-b-2 border-primary-600'
+                                : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            Volunteer Dashboard
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('resources')}
+                            className={`pb-2 px-1 text-sm font-medium transition-colors relative ${activeTab === 'resources'
+                                ? 'text-primary-600 border-b-2 border-primary-600'
+                                : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            Resources Available
+                        </button>
                     </div>
+
+                    {/* Stats */}
+                    {activeTab === 'dashboard' && (
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="bg-primary-50 rounded-lg p-3 text-center">
+                                <p className="text-2xl font-bold text-primary-600">{myIncidents.length}</p>
+                                <p className="text-xs text-gray-600">My Incidents</p>
+                            </div>
+                            <div className="bg-warning-50 rounded-lg p-3 text-center">
+                                <p className="text-2xl font-bold text-warning-600">
+                                    {incidents.filter(i => i.status === 'pending').length}
+                                </p>
+                                <p className="text-xs text-gray-600">Pending</p>
+                            </div>
+                            <div className="bg-success-50 rounded-lg p-3 text-center">
+                                <p className="text-2xl font-bold text-success-600">
+                                    {incidents.filter(i => i.status === 'in-progress').length}
+                                </p>
+                                <p className="text-xs text-gray-600">In Progress</p>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </header>
 
             <div className="max-w-7xl mx-auto px-4 py-6">
-                {/* Live Map */}
-                <div className="card mb-6">
-                    <h2 className="mb-4">Live Incident Map - {userProfile?.city}</h2>
-                    <LiveMap
-                        city={userProfile?.city}
-                        height="400px"
-                        onIncidentClick={setSelectedIncident}
-                    />
-                </div>
 
-                <div className="grid md:grid-cols-2 gap-6">
-                    {/* Available Incidents */}
-                    <div className="card">
-                        <h2 className="mb-4">Available Incidents</h2>
+                {activeTab === 'dashboard' ? (
+                    <>
+                        {/* Live Map */}
+                        <div className="card mb-6">
+                            <h2 className="mb-4">Live Incident Map - {userProfile?.city}</h2>
+                            <LiveMap
+                                city={userProfile?.city}
+                                height="400px"
+                                onIncidentClick={setSelectedIncident}
+                            />
+                        </div>
 
-                        {incidents.filter(i => !i.assignedVolunteer).length === 0 ? (
-                            <p className="text-gray-500 text-center py-8">
-                                No available incidents
-                            </p>
-                        ) : (
-                            <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                                {incidents.filter(i => !i.assignedVolunteer).map((incident) => (
-                                    <div
-                                        key={incident.id}
-                                        className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                                    >
-                                        <div className="flex justify-between items-start mb-2">
-                                            <h3 className="font-semibold capitalize">{incident.type}</h3>
-                                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(incident.status)}`}>
-                                                {incident.status}
-                                            </span>
-                                        </div>
+                        <div className="grid md:grid-cols-2 gap-6">
+                            {/* Available Incidents */}
+                            <div className="card">
+                                <h2 className="mb-4">Available Incidents</h2>
 
-                                        <p className="text-sm text-gray-600 mb-2">{incident.description}</p>
-
-                                        <div className="flex justify-between items-center text-xs text-gray-500 mb-3">
-                                            <span>Severity: <span className={
-                                                incident.severity === 'High' ? 'text-danger-600 font-semibold' :
-                                                    incident.severity === 'Medium' ? 'text-warning-600 font-semibold' :
-                                                        'text-success-600 font-semibold'
-                                            }>{incident.severity}</span></span>
-                                            <span>{new Date(incident.timestamp).toLocaleString()}</span>
-                                        </div>
-
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => setSelectedIncident(incident)}
-                                                className="btn-secondary text-sm flex-1"
+                                {incidents.filter(i => !i.assignedVolunteer).length === 0 ? (
+                                    <p className="text-gray-500 text-center py-8">
+                                        No available incidents
+                                    </p>
+                                ) : (
+                                    <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                                        {incidents.filter(i => !i.assignedVolunteer).map((incident) => (
+                                            <div
+                                                key={incident.id}
+                                                className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                                             >
-                                                View Details
-                                            </button>
-                                            <button
-                                                onClick={() => handleAcceptIncident(incident.id)}
-                                                className="btn-primary text-sm flex-1"
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <h3 className="font-semibold capitalize">{incident.type}</h3>
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(incident.status)}`}>
+                                                        {incident.status}
+                                                    </span>
+                                                </div>
+
+                                                <p className="text-sm text-gray-600 mb-2">{incident.description}</p>
+
+                                                <div className="flex justify-between items-center text-xs text-gray-500 mb-3">
+                                                    <span>Severity: <span className={
+                                                        incident.severity === 'High' ? 'text-danger-600 font-semibold' :
+                                                            incident.severity === 'Medium' ? 'text-warning-600 font-semibold' :
+                                                                'text-success-600 font-semibold'
+                                                    }>{incident.severity}</span></span>
+                                                    <span>{new Date(incident.timestamp).toLocaleString()}</span>
+                                                </div>
+
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => setSelectedIncident(incident)}
+                                                        className="btn-secondary text-sm flex-1"
+                                                    >
+                                                        View Details
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleAcceptIncident(incident.id)}
+                                                        className="btn-primary text-sm flex-1"
+                                                    >
+                                                        Accept
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* My Assigned Incidents */}
+                            <div className="card">
+                                <h2 className="mb-4">My Assigned Incidents</h2>
+
+                                {myIncidents.length === 0 ? (
+                                    <p className="text-gray-500 text-center py-8">
+                                        No assigned incidents yet
+                                    </p>
+                                ) : (
+                                    <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                                        {myIncidents.map((incident) => (
+                                            <div
+                                                key={incident.id}
+                                                className="border border-primary-200 bg-primary-50 rounded-lg p-4"
                                             >
-                                                Accept
-                                            </button>
-                                        </div>
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <h3 className="font-semibold capitalize">{incident.type}</h3>
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(incident.status)}`}>
+                                                        {incident.status}
+                                                    </span>
+                                                </div>
+
+                                                <p className="text-sm text-gray-600 mb-2">{incident.description}</p>
+
+                                                <div className="flex justify-between items-center text-xs text-gray-500 mb-3">
+                                                    <span>Severity: <span className={
+                                                        incident.severity === 'High' ? 'text-danger-600 font-semibold' :
+                                                            incident.severity === 'Medium' ? 'text-warning-600 font-semibold' :
+                                                                'text-success-600 font-semibold'
+                                                    }>{incident.severity}</span></span>
+                                                    <span>{new Date(incident.timestamp).toLocaleString()}</span>
+                                                </div>
+
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedIncident(incident);
+                                                        setShowUpdateForm(true);
+                                                    }}
+                                                    className="btn-primary text-sm w-full"
+                                                >
+                                                    Add Update
+                                                </button>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
+                                )}
                             </div>
-                        )}
-                    </div>
-
-                    {/* My Assigned Incidents */}
-                    <div className="card">
-                        <h2 className="mb-4">My Assigned Incidents</h2>
-
-                        {myIncidents.length === 0 ? (
-                            <p className="text-gray-500 text-center py-8">
-                                No assigned incidents yet
-                            </p>
-                        ) : (
-                            <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                                {myIncidents.map((incident) => (
-                                    <div
-                                        key={incident.id}
-                                        className="border border-primary-200 bg-primary-50 rounded-lg p-4"
-                                    >
-                                        <div className="flex justify-between items-start mb-2">
-                                            <h3 className="font-semibold capitalize">{incident.type}</h3>
-                                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(incident.status)}`}>
-                                                {incident.status}
-                                            </span>
-                                        </div>
-
-                                        <p className="text-sm text-gray-600 mb-2">{incident.description}</p>
-
-                                        <div className="flex justify-between items-center text-xs text-gray-500 mb-3">
-                                            <span>Severity: <span className={
-                                                incident.severity === 'High' ? 'text-danger-600 font-semibold' :
-                                                    incident.severity === 'Medium' ? 'text-warning-600 font-semibold' :
-                                                        'text-success-600 font-semibold'
-                                            }>{incident.severity}</span></span>
-                                            <span>{new Date(incident.timestamp).toLocaleString()}</span>
-                                        </div>
-
-                                        <button
-                                            onClick={() => {
-                                                setSelectedIncident(incident);
-                                                setShowUpdateForm(true);
-                                            }}
-                                            className="btn-primary text-sm w-full"
-                                        >
-                                            Add Update
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
+                        </div>
+                    </>
+                ) : (
+                    <ResourcesList />
+                )}
 
                 {/* Update Form Modal */}
                 {showUpdateForm && selectedIncident && (

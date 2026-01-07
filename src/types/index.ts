@@ -90,3 +90,19 @@ export interface RegistrationData {
     department?: string;
     region?: string;
 }
+
+// Resource Types
+export type ResourceType = 'Ambulance' | 'Hospital Beds' | 'Food' | 'Water' | 'Shelter' | 'Blood' | 'Rescue Equipment';
+export type ResourceStatus = 'Available' | 'Limited' | 'Unavailable';
+
+export interface ResourceItem {
+    id: string;
+    type: ResourceType;
+    location: string;
+    city: string;
+    status: ResourceStatus;
+    quantity?: string;
+    providerName: string;
+    contactNr?: string;
+    lastUpdated: Date;
+}
